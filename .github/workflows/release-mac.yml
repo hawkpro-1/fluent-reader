@@ -1,0 +1,47 @@
+name: CI/CD Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build and package the app
+      run: |
+        npm install
+        npm run build
+        npm run package-mac
+
+    - name: Get app version
+      id: package-version
+      run: |
+        PACKAGE_VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g' | tr -d '[[:space:]]')
+        echo ::set-output name=current-version::$PACKAGE_VERSION
+      shell: bash
+
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Fluent Reader v${{ steps.package-version.outputs.current-version }}
+        draft: true
+        prerelease: false
+    
+    - name: Upload x64 dmg to release assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./bin/darwin/x64/Fluent Reader Setup ${{ steps.package-version.outputs.current-version }}.dmg
+        asset_name: Fluent.Reader.Setup.${{ steps.package-version.outputs.current-version }}.x64.dmg
+        
