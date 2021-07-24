@@ -64,6 +64,10 @@ export class RSSItem {
             let images = parsed.mediaContent.filter(c => c.$ && c.$.medium === "image" && c.$.url)
             if (images.length > 0) item.thumb = images[0].$.url
         }
+        else if (parsed.enclosure?.url) {
+            const mimetypes = /image\/png|image\/jpeg|imagesvg\+xml|image\/gif|image\/svg\+xml/;
+            if (mimetypes.test(parsed.enclosure.type)) item.thumb = parsed.enclosure.url
+        }
         if (!item.thumb) {
             let dom = domParser.parseFromString(item.content, "text/html")
             let baseEl = dom.createElement('base')
